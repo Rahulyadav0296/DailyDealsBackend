@@ -24,9 +24,11 @@ exports.addToCart = async (req, res) => {
       if (itemIndex > -1) {
         //product exists in the cart, update quantity
         cart.items[itemIndex].quantity += quantity;
+        cart.totalQuantity += quantity;
       } else {
         //product does not exists in the cart, add new item
         cart.items.push({ product: productId, quantity });
+        cart.totalQuantity += quantity;
       }
 
       cart.totalPrice += product.price * quantity;
@@ -36,7 +38,9 @@ exports.addToCart = async (req, res) => {
       cart = new Cart({
         user: userId,
         items: [{ product: productId, quantity }],
+
         totalPrice: product.price * quantity,
+        totalQuantity: quantity,
       });
       await cart.save();
     }
@@ -54,11 +58,22 @@ exports.getCart = async (req, res) => {
   const { userId } = req.params;
 
   try {
-    const cart = await Cart.findOne({ user: userId }).populate("items.product");
-    if (!cart) {
-      return res.status(404).json({ message: "Cart not found" });
+    if (!userId) {
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .json({ message: "User Id is required" });
     }
-    res.status(StatusCodes.OK).json(cart);
+    const updatedCart = await Cart.findOne({ user: userId })
+      .populate("items.product") // Populating the product field
+      .exec();
+    console.log("Updated cart is: ", updatedCart);
+
+    if (!updatedCart) {
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .json({ message: "Cart not found" });
+    }
+    res.status(StatusCodes.OK).json(updatedCart);
   } catch (error) {
     console.error(error);
     res
@@ -98,6 +113,11 @@ exports.removeFromCart = async (req, res) => {
       console.log(itemPrice, itemQuantity);
 
       cart.totalPrice -= itemPrice * itemQuantity;
+      cart.totalQuantity -= itemQuantity;
+
+      if (cart.totalQuantity < 0) {
+        cart.totalQuantity = 0;
+      }
       if (cart.totalPrice < 0) {
         cart.totalPrice = 0;
       }
@@ -105,6 +125,10 @@ exports.removeFromCart = async (req, res) => {
       cart.items.splice(itemIndex, 1);
       if (cart.items.length === 0) {
         cart.totalPrice = 0;
+      }
+
+      if (cart.items.length === 0) {
+        cart.totalQuantity = 0;
       }
     } else {
       return res
@@ -137,6 +161,7 @@ exports.clearCart = async (req, res) => {
 
     cart.items = [];
     cart.totalPrice = 0;
+    cart.totalQuantity = 0;
     await cart.save();
     res.status(StatusCodes.OK).json(cart);
   } catch (error) {
