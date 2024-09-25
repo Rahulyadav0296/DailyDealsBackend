@@ -35,6 +35,11 @@ const User = new mongoose.Schema(
     profilePicture: {
       type: String,
     },
+    role: {
+      type: String,
+      enum: ["admin", "user"],
+      default: "user",
+    },
   },
   { timestamps: true }
 );
@@ -47,6 +52,14 @@ User.method({
   async authenticate(password) {
     return bcrypt.compare(password, this.hash_password);
   },
+});
+
+// Hash password before saving
+User.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
 
 module.exports = mongoose.model("User", User);

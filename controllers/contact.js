@@ -12,11 +12,11 @@ const contactPost = async (req, res) => {
       message: message,
     });
     await newContact.save();
-    await res
+    return res
       .status(StatusCodes.OK)
       .json({ message: `Thank you ${name} We will contact you soon!` });
   } catch (error) {
-    res.status(StatusCodes.BAD_REQUEST).json({ error });
+    return res.status(StatusCodes.BAD_REQUEST).json({ error });
   }
 };
 module.exports = contactPost;

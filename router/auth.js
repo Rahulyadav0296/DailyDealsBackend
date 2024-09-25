@@ -11,12 +11,14 @@ const {
   getUser,
   editUser,
   deleteUser,
+  getAllUser,
 } = require("../controllers/auth");
+const { verifyToken, adminAuth } = require("../middleware/auth");
 
 router.route("/signin").post(validateSignInRequest, isRequestValidated, signIn);
 router.route("/signup").post(validateSignUpRequest, isRequestValidated, signUp);
-router.get("/signup/:id", getUser);
-router.put("/signup/:id", editUser);
-router.delete("/signup/:id", deleteUser);
-
+router.get("/users/:id", verifyToken, getUser);
+router.put("/signup/:id", verifyToken, editUser);
+router.delete("/signup/:id", verifyToken, adminAuth, deleteUser);
+router.get("/users", verifyToken, adminAuth, getAllUser);
 module.exports = router;

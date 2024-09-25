@@ -12,7 +12,9 @@ const signUp = async (req, res) => {
     password,
     profilePicture,
     contactNumber,
+    role,
   } = req.body;
+
   if (
     !firstName ||
     !lastName ||
@@ -27,33 +29,51 @@ const signUp = async (req, res) => {
     });
   }
 
-  const hash_password = await bcrypt.hash(password, 10);
+  try {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        message: "User already registered",
+      });
+    }
 
-  const userData = {
-    firstName,
-    lastName,
-    email,
-    username,
-    hash_password,
-    profilePicture,
-    contactNumber,
-  };
+    if (role === "admin" && (!req.user || req.user.role !== "admin")) {
+      return res.status(StatusCodes.FORBIDDEN).json({
+        message: "You are not authorized to create an admin user",
+      });
+    }
 
-  const user = await User.findOne({ email });
-  if (user) {
-    return res.status(StatusCodes.BAD_REQUEST).json({
-      message: "User already registered",
+    const hash_password = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+      firstName,
+      lastName,
+      email,
+      username,
+      hash_password,
+      profilePicture,
+      contactNumber,
+      role: role === "admin" ? "admin" : "user",
     });
-  } else {
-    User.create(userData).then((data, err) => {
-      if (err) res.status(StatusCodes.BAD_REQUEST).json({ err });
-      else
-        res
-          .status(StatusCodes.CREATED)
-          .json({ message: "User created Successfully", user: data });
+
+    return res.status(StatusCodes.CREATED).json({
+      message: "User created successfully",
+      user: {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        contactNumber: user.contactNumber,
+      },
+    });
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      message: "Error creating user",
+      error: error.message,
     });
   }
 };
+
 const signIn = async (req, res) => {
   try {
     if (!req.body.email || !req.body.password) {
@@ -66,17 +86,29 @@ const signIn = async (req, res) => {
 
     if (user) {
       if (user.authenticate(req.body.password)) {
-        const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
-          expiresIn: "30d",
+        const token = jwt.sign(
+          { _id: user._id, role: user.role },
+          process.env.JWT_SECRET,
+          {
+            expiresIn: "30d",
+          }
+        );
+
+        res.cookie("token", token, {
+          httpOnly: true,
+          sameSite: "Strict",
+          // secure: process.env.NODE_ENV === "production"
+          maxAge: 60 * 60 * 1000, // 1 hour
         });
-        const { _id, firstName, lastName, email, fullName } = user;
+
+        const { _id, firstName, lastName, email, fullName, role } = user;
         res.status(StatusCodes.OK).json({
           token,
-          user: { _id, firstName, lastName, email, fullName },
+          user: { _id, firstName, lastName, email, fullName, role },
         });
       } else {
         res.status(StatusCodes.UNAUTHORIZED).json({
-          message: "Something went wrong!",
+          message: "Invalid Creadential",
         });
       }
     } else {
@@ -85,7 +117,10 @@ const signIn = async (req, res) => {
       });
     }
   } catch (error) {
-    res.status(StatusCodes.BAD_REQUEST).json({ error });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      message: "Something went wrong",
+      error: error.message,
+    });
   }
 };
 
@@ -104,9 +139,29 @@ const getUser = async (req, res) => {
 
     //exclude the password hash from the responce
     const { hash_password, ...userdetails } = user.toObject();
-    res.status(StatusCodes.OK).json(userdetails);
+    return res.status(StatusCodes.OK).json(userdetails);
   } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      message: "Error fetching user details",
+      error: error.message,
+    });
+  }
+};
+
+const getAllUser = async (req, res) => {
+  try {
+    const users = await User.find();
+    console.log("All users are: ", users);
+
+    if (users.length === 0) {
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ message: "User Not Found" });
+    }
+
+    return res.status(StatusCodes.OK).json(users);
+  } catch (error) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       message: "Error fetching user details",
       error: error.message,
     });
@@ -133,6 +188,11 @@ const editUser = async (req, res) => {
 };
 
 const deleteUser = async (req, res) => {
+  if (req.user.role !== "admin") {
+    return res.status(StatusCodes.FORBIDDEN).json({
+      message: "Only admin can delete users",
+    });
+  }
   try {
     const user = await User.findByIdAndDelete(req.params.id);
     console.log(user);
@@ -148,4 +208,4 @@ const deleteUser = async (req, res) => {
   }
 };
 
-module.exports = { signUp, signIn, getUser, editUser, deleteUser };
+module.exports = { signUp, signIn, getUser, editUser, deleteUser, getAllUser };
