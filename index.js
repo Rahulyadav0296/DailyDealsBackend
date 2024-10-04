@@ -26,7 +26,9 @@ const environment = process.env.NODE_ENV || "development";
 
 const app = express();
 
-const allowedOrigins = ["https://daily-deals-shopping-front.vercel.app"];
+const allowedOrigins = [
+  "https://daily-deals-shopping-front-5dto-hh9bcqynv.vercel.app/",
+];
 
 app.use(
   cors({
