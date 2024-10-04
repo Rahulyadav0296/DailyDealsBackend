@@ -1,6 +1,7 @@
 const { StatusCodes } = require("http-status-codes");
 const Cart = require("../models/cart");
 const Product = require("../models/products");
+const mongoose = require("mongoose");
 
 // create a new cart or add items to an existring cart
 exports.addToCart = async (req, res) => {
@@ -56,6 +57,12 @@ exports.addToCart = async (req, res) => {
 //get the cart for a specific user
 exports.getCart = async (req, res) => {
   const { userId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    return res
+      .status(StatusCodes.BAD_REQUEST)
+      .json({ message: "Invalid User Id" });
+  }
 
   try {
     if (!userId) {

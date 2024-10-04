@@ -2,11 +2,7 @@ const jwt = require("jsonwebtoken");
 const { StatusCodes } = require("http-status-codes");
 
 const verifyToken = (req, res, next) => {
-  console.log("Cookies: ", req.cookies);
-  console.log("Authorization Header: ", req.headers.authorization);
-
   const token = req.cookies?.token || req.headers.authorization?.split(" ")[1];
-  console.log("Verified Token is: ", token);
   if (!token)
     return res
       .status(StatusCodes.UNAUTHORIZED)
@@ -19,7 +15,6 @@ const verifyToken = (req, res, next) => {
         .json({ message: "Unauthorized" });
     }
 
-    console.log("Decoded user info: ", decoded);
     req.user = decoded;
     next();
   });

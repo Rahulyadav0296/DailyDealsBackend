@@ -10,13 +10,18 @@ const cartRoute = require("./router/cart");
 const authRoute = require("./router/auth"); // Ensure this route is imported
 const { StatusCodes } = require("http-status-codes");
 const helmet = require("helmet");
-const rateLimit = require("express-rate-limit");
+const blogRoute = require("./router/blogs");
+// const rateLimit = require("express-rate-limit");
 const { body, validationResult } = require("express-validator");
 const csrf = require("csurf");
 const cookieParser = require("cookie-parser");
+const { Server } = require("socket.io");
+const http = require("http");
 
 const port = process.env.PORT || 5000;
-const MONGO_URL = process.env.MONGO_URL;
+const MONGO_URL =
+  process.env.MONGO_URL ||
+  "mongodb+srv://rajendrayadav510:0L6H4dY7zao4IAWt@cluster0.wogscif.mongodb.net/Blog?retryWrites=true&w=majority&appName=Cluster0";
 const environment = process.env.NODE_ENV || "development";
 
 const app = express();
@@ -33,6 +38,7 @@ app.use(authRoute);
 app.use(contactRoute);
 app.use(productRoute);
 app.use(cartRoute);
+app.use(blogRoute);
 
 console.log(`Running in ${environment} mode`);
 app.use(cookieParser());
@@ -48,6 +54,8 @@ app.use(cookieParser());
 //   const csrfProtection = csrf({ cookie: true });
 //   app.use(csrfProtection);
 // }
+
+const server = http.createServer(app);
 
 app.post(
   "/create-payment-intent",
@@ -95,6 +103,14 @@ app.post(
   }
 );
 
+// Initialize Socket.IO
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173", // Your frontend URL
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  },
+});
+
 // Connect to MongoDB
 if (!MONGO_URL) {
   console.error("MONGO_URL is not defined in environment variables.");
@@ -104,9 +120,25 @@ if (!MONGO_URL) {
 mongoose
   .connect(MONGO_URL)
   .then(() => {
-    app.listen(port, () => {
-      console.log(`Server running on port ${port}`);
-      console.log("Congrats, Database Connected!");
+    // Start the server with Socket.IO
+    server.listen(port, () => {
+      console.log(`Server is running on port ${port}`);
+    });
+    console.log("Congratulations, Database connected!");
+
+    // Handle Socket.IO connections
+    io.on("connection", (socket) => {
+      console.log("A user connected:", socket.id);
+
+      // Listen for an event from the client
+      socket.on("newData", (data) => {
+        // Emit the new data to all connected clients
+        io.emit("newData", data);
+      });
+
+      socket.on("disconnect", () => {
+        console.log("A user disconnected:", socket.id);
+      });
     });
   })
   .catch((err) => {

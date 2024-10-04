@@ -151,7 +151,6 @@ const getUser = async (req, res) => {
 const getAllUser = async (req, res) => {
   try {
     const users = await User.find();
-    console.log("All users are: ", users);
 
     if (users.length === 0) {
       return res
