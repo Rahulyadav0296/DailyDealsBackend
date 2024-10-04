@@ -28,7 +28,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: ["https://daily-deals-shopping-front-voab.vercel.app"],
     credentials: true,
   })
 );
@@ -106,7 +106,7 @@ app.post(
 // Initialize Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173", // Your frontend URL
+    origin: "http://localhost:5174", // Your frontend URL
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   },
 });
