@@ -11,7 +11,7 @@ const authRoute = require("./router/auth"); // Ensure this route is imported
 const { StatusCodes } = require("http-status-codes");
 const helmet = require("helmet");
 const blogRoute = require("./router/blogs");
-// const rateLimit = require("express-rate-limit");
+const rateLimit = require("express-rate-limit");
 const { body, validationResult } = require("express-validator");
 const csrf = require("csurf");
 const cookieParser = require("cookie-parser");
@@ -42,18 +42,18 @@ app.use(blogRoute);
 
 console.log(`Running in ${environment} mode`);
 app.use(cookieParser());
-// if (environment === "production") {
-//   const apiLimit = rateLimit({
-//     windowMs: 15 * 60 * 1000, // 15 minutes
-//     max: 100,
-//     message:
-//       "Too Many Requests from this IP, Please Try again after 15 minutes",
-//   });
-//   app.use(apiLimit);
-//   app.use(cookieParser());
-//   const csrfProtection = csrf({ cookie: true });
-//   app.use(csrfProtection);
-// }
+if (environment === "production") {
+  const apiLimit = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100,
+    message:
+      "Too Many Requests from this IP, Please Try again after 15 minutes",
+  });
+  app.use(apiLimit);
+  app.use(cookieParser());
+  const csrfProtection = csrf({ cookie: true });
+  app.use(csrfProtection);
+}
 
 const server = http.createServer(app);
 
