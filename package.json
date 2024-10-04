@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon run index.js",
-    "postinstall": "npm rebuild bcrypt --build-from-source --unsafe-perm",
+    "postinstall": "npm rebuild bcryptjs --build-from-source --unsafe-perm",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "rahul yadav",
