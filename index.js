@@ -26,24 +26,24 @@ const environment = process.env.NODE_ENV || "development";
 
 const app = express();
 
-const allowedOrigins = [
-  "https://daily-deals-shopping-front-voab.vercel.app",
-  "https://daily-deals-shopping-front-yarf.vercel.app",
-];
+const allowedOrigins = ["https://daily-deals-shopping-front.vercel.app"];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (allowedOrigins.includes(origin)) {
-        callback(null, origin);
+      // Allow requests from the allowed origin or undefined origins (like Postman)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
       }
     },
-    credentials: true,
+    credentials: true, // Allow cookies and credentials
   })
 );
 
+// Add this to handle preflight requests (OPTIONS)
+app.options("*", cors());
 app.use(helmet());
 app.use(bodyParser.json()); // Use only one body parser
 app.use(authRoute);
@@ -118,11 +118,11 @@ app.post(
 // Initialize Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: "https://daily-deals-shopping-front-yarf.vercel.app/", // Your frontend URL
+    origin: allowedOrigins,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    credentials: true, // Important for allowing cookies/credentials
   },
 });
-
 // Connect to MongoDB
 if (!MONGO_URL) {
   console.error("MONGO_URL is not defined in environment variables.");
