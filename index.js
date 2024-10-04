@@ -26,12 +26,24 @@ const environment = process.env.NODE_ENV || "development";
 
 const app = express();
 
+const allowedOrigins = [
+  "https://daily-deals-shopping-front-voab.vercel.app",
+  "https://daily-deals-shopping-front-yarf.vercel.app",
+];
+
 app.use(
   cors({
-    origin: "https://daily-deals-shopping-front-voab.vercel.app",
+    origin: (origin, callback) => {
+      if (allowedOrigins.includes(origin)) {
+        callback(null, origin);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
+
 app.use(helmet());
 app.use(bodyParser.json()); // Use only one body parser
 app.use(authRoute);
@@ -106,7 +118,7 @@ app.post(
 // Initialize Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: "https://daily-deals-shopping-front-voab.vercel.app", // Your frontend URL
+    origin: "https://daily-deals-shopping-front-yarf.vercel.app/", // Your frontend URL
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   },
 });
