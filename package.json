@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon run index.js",
-    "postinstall": "npm rebuild bcrypt --build-from-source",
+    "postinstall": "npm rebuild bcrypt --build-from-source --unsafe-perm",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "rahul yadav",
@@ -35,6 +35,6 @@
     "twilio": "^5.2.3"
   },
   "engines": {
-    "node": ">=18.20.4"
+    "node": ">=14.x"
   }
 }
